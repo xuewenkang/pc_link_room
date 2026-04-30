@@ -425,7 +425,7 @@
 }
 
 .header-btn {
-  width: 36px;
+  width: 70px;
   height: 36px;
   border: none;
   background: transparent;
@@ -444,6 +444,22 @@
   color: var(--text-primary);
 }
 
+/* 视频通话入口按钮 */
+.video-call-btn {
+  background: var(--green-light) !important;
+  color: var(--green) !important;
+  gap: 4px;
+}
+
+.video-call-btn:hover {
+  background: #d4f5e0 !important;
+}
+
+.video-call-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .header-btn.blocked-active {
   background: #ffe5e5;
   color: #ff3b30;
@@ -458,6 +474,50 @@
   flex-direction: column;
   gap: 12px;
   background: linear-gradient(135deg, rgba(52, 199, 89, 0.02) 0%, rgba(102, 126, 234, 0.02) 100%);
+}
+
+/* 历史消息加载指示器 */
+.history-load-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+
+.loading-history {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.loading-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.no-more-history {
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.5;
 }
 
 /* 消息行 */

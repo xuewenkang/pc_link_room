@@ -7,12 +7,14 @@ import { initDatabase } from './config/database.js';
 import { setupConnectionHandlers } from './socket/connection.js';
 import { setupChatHandlers } from './socket/chat.js';
 import { setupGameHandlers } from './socket/games.js';
+import { setupVideoHandlers, cleanupVideoUser } from './socket/video.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -38,9 +40,18 @@ io.on('connection', (socket) => {
   setupConnectionHandlers(io, socket);
   setupChatHandlers(io, socket);
   setupGameHandlers(io, socket);
+  setupVideoHandlers(io, socket);
 
   socket.on('disconnect', () => {
     console.log(`用户断开: ${socket.id}`);
+    // 清理视频通话
+    const videoInfo = cleanupVideoUser(socket.id);
+    if (videoInfo) {
+      io.to('video-room').emit('video:user-left', {
+        userId: videoInfo.userId,
+        socketId: socket.id
+      });
+    }
   });
 });
 
@@ -48,13 +59,16 @@ io.on('connection', (socket) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`
 ╔════════════════════════════════════════════════════╗
-║                                                    ╔
+║                                                    ║
 ║   🎊 欢乐聊天 - 局域网娱乐平台启动成功！           ║
 ║                                                    ║
-║   ✅ 服务器运行中                                   ║
-║   📡 本地访问: http://localhost:${PORT}            ║
-║   🌐 局域网访问: http://<你的IP>:${PORT}          ║
+║   ✅ 服务器运行中（HTTP 模式）                      ║
+║   📡 本地访问: http://localhost:${PORT}
+║   🌐 局域网访问: http://<你的IP>:${PORT}
 ║                                                    ║
-╚══════════════════════════════════════════════════╝
+║   💡 摄像头功能需要 HTTPS，请用以下方式启动浏览器:
+║   chrome.exe --unsafely-treat-insecure-origin-as-secure=http://<你的IP>:${PORT} --user-data-dir="C:\\chrome-dev"
+║                                                    ║
+╚════════════════════════════════════════════════╝
   `);
 });

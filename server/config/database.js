@@ -130,16 +130,21 @@ export const messageOps = {
     const stmt = db.prepare('INSERT INTO messages (user_id, content, room_id) VALUES (?, ?, ?)');
     return stmt.run(userId, content, roomId);
   },
-  getHistory: (roomId = 'general', limit = 50) => {
+  getHistory: (roomId = 'general', limit = 50, offset = 0) => {
     const stmt = db.prepare(`
       SELECT m.*, u.username, u.avatar, u.avatarId
       FROM messages m
       JOIN users u ON m.user_id = u.id
       WHERE m.room_id = ?
       ORDER BY m.created_at DESC
-      LIMIT ?
+      LIMIT ? OFFSET ?
     `);
-    return stmt.all(roomId, limit).reverse();
+    return stmt.all(roomId, limit, offset).reverse();
+  },
+  // 获取总消息数量（用于分页计算）
+  getCount: (roomId = 'general') => {
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM messages WHERE room_id = ?');
+    return stmt.get(roomId).count;
   },
   getWithUser: (messageId) => {
     const stmt = db.prepare(`

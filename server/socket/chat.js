@@ -19,8 +19,13 @@ export function setupChatHandlers(io, socket) {
     io.to(roomId).emit('message:new', { message, roomId });
   });
 
-  // 请求消息历史
-  socket.on('message:history', (roomId = 'general') => {
+  // 请求消息历史（支持分页）
+  socket.on('message:history', (data) => {
+    // 兼容旧格式: roomId 可以是字符串或对象
+    const roomId = (typeof data === 'string') ? data : (data?.roomId || 'general');
+    const page = (typeof data === 'object' && data?.page) ? data.page : 1;
+    const pageSize = 30; // 每页30条
+
     socket.join(roomId); // 加入房间
 
     const userId = socket.data.userId;
@@ -29,8 +34,12 @@ export function setupChatHandlers(io, socket) {
       return;
     }
 
-    const history = messageOps.getHistory(roomId, 50);
-    socket.emit('message:history', { messages: history, roomId });
+    const offset = (page - 1) * pageSize;
+    const history = messageOps.getHistory(roomId, pageSize, offset);
+    const total = messageOps.getCount(roomId);
+    const hasMore = offset + history.length < total;
+
+    socket.emit('message:history', { messages: history, roomId, hasMore, total });
   });
 
   // 开始输入提示

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './ChatRoomNew.css';
 import Icons from './Icons';
 import { CARTOON_AVATARS, svgToDataUrl } from '../utils/avatars';
+import VideoRoom from './VideoRoom';
 
 const EMOJIS = ['😀', '😍', '😂', '👍', '🎉', '🔥', '❤️', '👏', '😎', '🙏', '😊', '🥰', '🌟', '💯', '🌈', '💫'];
 
@@ -160,91 +161,80 @@ function UserProfileEdit({ currentUser, users, onSave, onClose, socket }) {
   );
 }
 
-// 会话列表组件
-function ConversationList({
-  conversations,
-  activeConversation,
-  onSelect,
-  currentUser,
-  blockedUsers,
-  onUnblockUser
-}) {
-  const [searchText, setSearchText] = useState('');
+// 格式化会话列表中的时间显示
+function formatConversationTime(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  const diff = now - date;
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    conv.lastMessage?.toLowerCase().includes(searchText.toLowerCase())
-  );
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+  // 跨天显示月/日
+  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+}
 
+// 截断消息预览文本（处理图片消息和超长文本）
+function truncateMessage(content, maxLength = 30) {
+  if (!content) return '';
+  let text = content;
+  if (text.startsWith('[图片]')) {
+    return '[图片]';
+  }
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + '...';
+  }
+  return text;
+}
+
+// 会话列表组件（仅公共聊天室）
+function ConversationList({ lastMessage, time, unreadCount }) {
   return (
     <div className="conversation-list">
       <div className="conversation-header">
         <h3>消息</h3>
-        <button className="add-btn" title="新建对话">
-          <Icons.Plus size={18} />
-        </button>
-      </div>
-
-      <div className="search-container">
-        <div className="search-icon-wrapper">
-          <Icons.Search size={18} color="#8e8e93" />
-        </div>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="搜索..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
       </div>
 
       <div className="conversations">
-        {filteredConversations.length === 0 && (
-          <div className="empty-state">
-            <p>没有找到会话</p>
+        <div className="conversation-item active">
+          <div className="conversation-avatar">
+            <Avatar avatarId="group" size={40} />
+            <span className="online-dot"></span>
           </div>
-        )}
-        {filteredConversations.map(conv => (
-          <div
-            key={conv.id}
-            className={`conversation-item ${activeConversation?.id === conv.id ? 'active' : ''}`}
-            onClick={() => onSelect(conv)}
-          >
-            <div className="conversation-avatar">
-              <Avatar avatarId={conv.avatarId} size={40} />
-              {conv.online && <span className="online-dot"></span>}
-            </div>
-            <div className="conversation-info">
-              <div className="conversation-name-row">
-                <span className="conversation-name">{conv.name}</span>
-                <div className="conversation-right">
-                  {conv.unreadCount > 0 && (
-                    <span className="unread-badge">{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</span>
-                  )}
-                  <span className="conversation-time">{conv.time}</span>
-                </div>
+          <div className="conversation-info">
+            <div className="conversation-name-row">
+              <span className="conversation-name">公共聊天室</span>
+              <div className="conversation-right">
+                {unreadCount > 0 && (
+                  <span className="unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+                <span className="conversation-time">{formatConversationTime(time)}</span>
               </div>
-              <span className="conversation-message">{conv.lastMessage}</span>
             </div>
+            <span className="conversation-message">{truncateMessage(lastMessage)}</span>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// 聊天主区域组件
+// 聊天主区域组件（仅公共聊天室）
 function ChatWindow({
-  conversation,
   messages,
   systemMessages,
   currentUser,
   onSendMessage,
   onTyping,
   onStopTyping,
-  blockedUsers,
-  onBlockUser,
-  onUnblockUser
+  onOpenVideo,
+  onLoadMoreMessages,
+  hasMoreHistory,
+  loadingHistory
 }) {
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -252,12 +242,45 @@ function ChatWindow({
   const [previewImage, setPreviewImage] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const messagesAreaRef = useRef(null);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  // 用于记录滚动加载前的位置，防止跳动
+  const prevScrollHeightRef = useRef(0);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 滚动监听：到达顶部时触发加载更多
+  useEffect(() => {
+    const area = messagesAreaRef.current;
+    if (!area) return;
+
+    const handleScroll = () => {
+      // 距离顶部小于80px时触发加载
+      if (area.scrollTop < 80 && hasMoreHistory && !loadingHistory) {
+        // 记录当前滚动高度
+        prevScrollHeightRef.current = area.scrollHeight;
+        onLoadMoreMessages();
+      }
+    };
+
+    area.addEventListener('scroll', handleScroll);
+    return () => area.removeEventListener('scroll', handleScroll);
+  }, [hasMoreHistory, loadingHistory, onLoadMoreMessages]);
+
+  // 加载更多消息后保持位置不变
+  useEffect(() => {
+    if (loadingHistory) return;
+    const area = messagesAreaRef.current;
+    if (area && prevScrollHeightRef.current > 0) {
+      // 新内容加载后，调整scrollTop使视觉位置不变
+      const newScrollHeight = area.scrollHeight;
+      area.scrollTop = newScrollHeight - prevScrollHeightRef.current;
+      prevScrollHeightRef.current = 0;
+    }
+  }, [messages, loadingHistory]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -323,12 +346,32 @@ function ChatWindow({
   const formatTime = (timestamp) => {
     if (!timestamp) return '刚刚';
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return '刚刚';
     const now = new Date();
     const diff = now - date;
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
 
+    // 不到1分钟
     if (diff < 60000) return '刚刚';
+    // 不到1小时
     if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    // 今天 - 显示时分
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    }
+    // 昨天 - 显示"昨天 时:分"
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `昨天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    // 今年 - 显示月/日 时:分
+    if (date.getFullYear() === now.getFullYear()) {
+      return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) +
+        ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    }
+    // 更早 - 显示年/月/日 时:分
+    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) +
+      ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };
 
   const isImageMessage = (content) => {
@@ -339,42 +382,20 @@ function ChatWindow({
     return content.replace('[图片] ', '');
   };
 
-  const isMessageBlocked = (message) => {
-    return blockedUsers.has(message.user_id);
-  };
-
   return (
     <div className="chat-window">
       {/* 顶部栏 */}
       <div className="chat-header">
         <div className="header-left">
-          <Avatar avatarId={conversation?.avatarId || 'bear'} size={40} className="header-avatar" />
+          <Avatar avatarId="group" size={40} className="header-avatar" />
           <div className="header-info">
-            <span className="header-name">{conversation?.name || '选择一个对话'}</span>
-            {conversation?.online && <span className="header-status">在线</span>}
+            <span className="header-name">公共聊天室</span>
           </div>
         </div>
         <div className="header-right">
-          {conversation?.id && conversation?.id !== 'general' && (
-            <button
-              className={`header-btn ${blockedUsers.has(conversation.id) ? 'blocked-active' : ''}`}
-              title={blockedUsers.has(conversation.id) ? '取消屏蔽' : '屏蔽用户'}
-              onClick={() => {
-                if (blockedUsers.has(conversation.id)) {
-                  onUnblockUser(conversation.id);
-                } else {
-                  onBlockUser(conversation.id);
-                }
-              }}
-            >
-              <Icons.Shield size={18} />
-            </button>
-          )}
-          <button className="header-btn" title="语音通话">
-            <Icons.Phone size={18} />
-          </button>
-          <button className="header-btn" title="视频通话">
+          <button className="header-btn video-call-btn" title="群视频通话" onClick={onOpenVideo}>
             <Icons.Video size={18} />
+            <span className="video-call-label">视频</span>
           </button>
           <button className="header-btn" title="更多">
             <Icons.More size={18} />
@@ -383,7 +404,21 @@ function ChatWindow({
       </div>
 
       {/* 消息区域 */}
-      <div className="messages-area">
+      <div className="messages-area" ref={messagesAreaRef}>
+        {/* 历史消息加载指示器 */}
+        <div className="history-load-indicator">
+          {loadingHistory && (
+            <div className="loading-history">
+              <span className="loading-dots">
+                <span></span><span></span><span></span>
+              </span>
+              加载历史消息中...
+            </div>
+          )}
+          {!hasMoreHistory && messages.length > 0 && !loadingHistory && (
+            <span className="no-more-history">— 已经是第一条消息 —</span>
+          )}
+        </div>
         {messages.length === 0 && (!systemMessages || systemMessages.length === 0) ? (
           <div className="empty-state">
             <Icons.Message size={48} color="#8e8e93" />
@@ -400,19 +435,7 @@ function ChatWindow({
             ))}
             {messages.map((msg, index) => {
               const isMine = msg.user_id === currentUser?.id;
-              const isBlocked = !isMine && isMessageBlocked(msg);
               const isImg = isImageMessage(msg.content);
-
-              if (isBlocked) {
-                return (
-                  <div key={msg.id} className="message-row blocked">
-                    <div className="blocked-message">
-                      <Icons.Shield size={16} />
-                      <span>消息已被屏蔽</span>
-                    </div>
-                  </div>
-                );
-              }
 
               return (
                 <div key={msg.id} className={`message-row ${isMine ? 'mine' : ''}`}>
@@ -536,10 +559,11 @@ function ChatWindow({
   );
 }
 
-// 好友列表组件
-function FriendList({ users, currentUser, onFriendSelect, blockedUsers }) {
+// 在线用户列表组件（纯展示）
+function OnlineUserList({ users, currentUser }) {
   const [searchText, setSearchText] = useState('');
 
+  // 不过滤自己，显示所有在线用户
   const filteredUsers = users.filter(u =>
     u.username.toLowerCase().includes(searchText.toLowerCase())
   );
@@ -547,8 +571,8 @@ function FriendList({ users, currentUser, onFriendSelect, blockedUsers }) {
   return (
     <div className="friend-list">
       <div className="friend-header">
-        <h3>好友</h3>
-        <span className="friend-count">{filteredUsers.filter(u => u.online).length} 在线</span>
+        <h3>在线用户</h3>
+        <span className="friend-count">{filteredUsers.length} 人</span>
       </div>
 
       <div className="search-container">
@@ -558,30 +582,30 @@ function FriendList({ users, currentUser, onFriendSelect, blockedUsers }) {
         <input
           type="text"
           className="search-input"
-          placeholder="搜索好友..."
+          placeholder="搜索..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
       </div>
 
       <div className="friends">
+        {filteredUsers.length === 0 && (
+          <div className="empty-state">
+            <p>暂无在线用户</p>
+          </div>
+        )}
         {filteredUsers.map(u => (
-          <div
-            key={u.id}
-            className={`friend-item ${currentUser?.id === u.id ? 'me' : ''} ${blockedUsers.has(u.id) ? 'blocked' : ''}`}
-            onClick={() => onFriendSelect && onFriendSelect(u)}
-          >
+          <div key={u.id} className={`friend-item ${currentUser?.id === u.id ? 'me' : ''}`}>
             <div className="friend-avatar">
               <Avatar avatarId={u.avatarId || 'bear'} size={40} />
               {u.online && <span className="online-dot"></span>}
             </div>
             <div className="friend-info">
               <span className="friend-name">{u.username}</span>
-              {blockedUsers.has(u.id) && (
-                <span className="blocked-badge">
-                  <Icons.Shield size={12} />
-                  已屏蔽
-                </span>
+              {currentUser?.id === u.id ? (
+                <span className="header-status">我</span>
+              ) : (
+                <span className="header-status">在线</span>
               )}
             </div>
           </div>
@@ -596,60 +620,15 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
   const [systemMessages, setSystemMessages] = useState([]);
   const [typingUser, setTypingUser] = useState(null);
   const [activeTab, setActiveTab] = useState('chats');
-  const [activeConversation, setActiveConversation] = useState(null);
-  const [currentRoom, setCurrentRoom] = useState('general');
-  const [blockedUsers, setBlockedUsers] = useState(new Set());
-  const [conversations, setConversations] = useState([]);
+  const [lastMessage, setLastMessage] = useState('');
+  const [lastMsgTime, setLastMsgTime] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
-
-  // 根据用户列表生成/刷新会话列表（保留已有的 lastMessage/unreadCount）
-  useEffect(() => {
-    setConversations(prev => {
-      const prevMap = new Map(prev.map(c => [c.id, c]));
-      const newConversations = [
-        {
-          id: 'general',
-          name: '公共聊天室',
-          avatarId: 'group',
-          online: true,
-          lastMessage: prevMap.get('general')?.lastMessage || '',
-          time: prevMap.get('general')?.time || '',
-          unreadCount: prevMap.get('general')?.unreadCount || 0
-        },
-        ...users.map(u => {
-          const existing = prevMap.get(u.id);
-          return {
-            id: u.id,
-            name: u.username,
-            avatarId: u.avatarId,
-            online: u.online,
-            lastMessage: existing?.lastMessage || '',
-            time: existing?.time || '',
-            unreadCount: existing?.unreadCount || 0
-          };
-        })
-      ];
-      return newConversations;
-    });
-  }, [users]);
-
-  // 根据当前房间消息更新对应会话的 lastMessage
-  const updateConversationLastMsg = (msgList) => {
-    if (!msgList || msgList.length === 0) return;
-    // 按 room_id 分组
-    const byRoom = {};
-    msgList.forEach(m => {
-      if (!byRoom[m.room_id]) byRoom[m.room_id] = [];
-      byRoom[m.room_id].push(m);
-    });
-
-    for (const [roomId, roomMsgs] of Object.entries(byRoom)) {
-      const latest = roomMsgs[roomMsgs.length - 1];
-      setConversations(prev => prev.map(c =>
-        String(c.id) === String(roomId) ? { ...c, lastMessage: latest.content || '', time: '' } : c
-      ));
-    }
-  };
+  const [showVideoRoom, setShowVideoRoom] = useState(false);
+  // 分页相关状态
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (socket && user) {
@@ -658,26 +637,32 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
 
       socket.on('message:new', ({ message }) => {
         setMessages(prev => [...prev, message]);
-        // 用消息自身的 room_id 更新对应会话的最后一条消息
-        const msgRoomId = message.room_id || 'general';
-        setConversations(prev => prev.map(c =>
-          c.id === msgRoomId || String(c.id) === String(msgRoomId)
-            ? { ...c, lastMessage: message.content || '', time: '' }
-            : c
-        ));
-        // 如果消息不是当前查看的会话，增加未读数
-        if (msgRoomId !== activeConversation?.id && String(msgRoomId) !== String(activeConversation?.id) && message.user_id !== user?.id) {
-          setConversations(prev => prev.map(c =>
-            c.id === msgRoomId || String(c.id) === String(msgRoomId)
-              ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
-              : c
-          ));
+        setLastMessage(message.content || '');
+        setLastMsgTime(message.created_at || Date.now());
+        // 如果当前在消息tab，不算未读；否则+1
+        if (activeTab !== 'chats' && message.user_id !== user?.id) {
+          setUnreadCount(prev => prev + 1);
         }
       });
 
-      socket.on('message:history', ({ messages }) => {
-        setMessages(messages);
-        updateConversationLastMsg(messages);
+      socket.on('message:history', ({ messages: historyMsgs, hasMore, total }) => {
+        if (currentPage === 1) {
+          // 第一页直接替换（初始加载）
+          setMessages(historyMsgs);
+        } else {
+          // 翻页：将旧消息插入到列表前面
+          setMessages(prev => [...historyMsgs, ...prev]);
+        }
+        setHasMoreHistory(hasMore !== false && hasMore !== undefined ? hasMore : true);
+        setLoadingHistory(false);
+        if (historyMsgs.length > 0) {
+          const latest = historyMsgs[historyMsgs.length - 1];
+          // 只有第一页时才更新最后消息预览（避免翻页覆盖）
+          if (currentPage === 1) {
+            setLastMessage(latest.content || '');
+            setLastMsgTime(latest.created_at || Date.now());
+          }
+        }
       });
 
       socket.on('typing:start', ({ username }) => {
@@ -690,21 +675,19 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
         }
       });
 
-      // 系统消息：用户加入
       socket.on('user:join', ({ user: joinedUser }) => {
         if (joinedUser && joinedUser.id !== user.id) {
+          const ts = Date.now();
           setSystemMessages(prev => [
             ...prev,
-            { type: 'join', content: `${joinedUser.username} 加入了聊天室`, timestamp: Date.now() }
+            { type: 'join', content: `${joinedUser.username} 加入了聊天室`, timestamp: ts }
           ]);
-          // 5秒后自动移除系统消息
           setTimeout(() => {
-            setSystemMessages(prev => prev.filter(m => m.timestamp !== (Date.now() - 5000 > 0 ? 0 : 1)));
+            setSystemMessages(prev => prev.filter(m => m.timestamp !== ts));
           }, 15000);
         }
       });
 
-      // 系统消息：用户离开
       socket.on('user:leave', ({ userId, username }) => {
         const leaveUser = users.find(u => u.id === userId);
         const displayName = leaveUser?.username || username || '某位用户';
@@ -725,121 +708,84 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
         socket.off('user:leave');
       };
     }
-  }, [socket, user, joinRoom, requestMessageHistory, typingUser, users]);
+  }, [socket, user, joinRoom, requestMessageHistory, typingUser, users, activeTab]);
 
   const handleSendMessage = (content) => {
-    sendMessage(content, currentRoom);
+    sendMessage(content, 'general');
+    // 发送消息时切换回消息tab并清除未读
+    setActiveTab('chats');
+    setUnreadCount(0);
   };
 
   const handleTyping = () => {
-    startTyping(currentRoom);
+    startTyping('general');
   };
 
   const handleStopTyping = () => {
-    stopTyping(currentRoom);
+    stopTyping('general');
   };
 
-  const handleConversationSelect = (conv) => {
-    setActiveConversation(conv);
-
-    // 清除该会话的未读数
-    setConversations(prev => prev.map(c =>
-      c.id === conv.id ? { ...c, unreadCount: 0 } : c
-    ));
-
-    // 如果切换会话，离开当前房间并加入新房间
-    if (conv.id !== currentRoom) {
-      if (currentRoom) {
-        // leaveRoom(currentRoom); // 如果有leaveRoom函数
-      }
-      setCurrentRoom(conv.id);
-      if (conv.id !== 'general') {
-        // joinRoom(conv.id); // 加入私聊房间
-      }
-      requestMessageHistory(conv.id);
-    }
-  };
-
-  const handleFriendSelect = (friend) => {
-    // 将好友选择转换为对话
+  // 切换到消息tab时清除未读
+  const handleSwitchToChats = () => {
     setActiveTab('chats');
-    const conv = conversations.find(c => c.id === friend.id);
-    if (conv) {
-      setActiveConversation(conv);
-      setCurrentRoom(friend.id);
-      requestMessageHistory(friend.id);
-    }
+    setUnreadCount(0);
   };
 
-  const handleBlockUser = (userId) => {
-    setBlockedUsers(prev => new Set([...prev, userId]));
-  };
-
-  const handleUnblockUser = (userId) => {
-    setBlockedUsers(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(userId);
-      return newSet;
-    });
+  // 加载更多历史消息（向上滚动触发）
+  const loadMoreMessages = () => {
+    if (loadingHistory || !hasMoreHistory || !socket) return;
+    setLoadingHistory(true);
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    socket.emit('message:history', { roomId: 'general', page: nextPage });
   };
 
   // 保存个人资料
   const handleSaveProfile = async (newUsername, newAvatar, newAvatarId) => {
     if (socket) {
       socket.emit('profile:update', { username: newUsername, avatar: newAvatar, avatarId: newAvatarId });
-      // 更新本地存储
       localStorage.setItem('chatUser', JSON.stringify({
         username: newUsername,
         avatar: newAvatar,
         avatarId: newAvatarId
       }));
-      // 通知父组件更新用户信息
       if (onUpdateUser) {
         onUpdateUser(newUsername, newAvatar, newAvatarId);
       }
     }
   };
 
-  // 过滤掉被屏蔽用户的消息
-  const filteredMessages = messages.filter(msg => {
-    if (msg.user_id === user?.id) return true;
-    return !blockedUsers.has(msg.user_id);
-  });
-
   return (
     <div className="chat-app">
       <LeftSidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => { if (tab === 'chats') handleSwitchToChats(); else setActiveTab(tab); }}
         onLogout={onLogout}
         currentUser={user}
         onEditProfile={() => setShowProfileEdit(true)}
       />
-      <ConversationList
-        conversations={conversations}
-        activeConversation={activeConversation}
-        onSelect={handleConversationSelect}
-        currentUser={user}
-        blockedUsers={blockedUsers}
-        onUnblockUser={handleUnblockUser}
-      />
+      {activeTab === 'chats' && (
+        <ConversationList
+          lastMessage={lastMessage}
+          time={lastMsgTime}
+          unreadCount={unreadCount}
+        />
+      )}
       <ChatWindow
-        conversation={activeConversation || { name: '公共聊天室', avatarId: 'group', online: true }}
-        messages={filteredMessages}
+        messages={messages}
         systemMessages={systemMessages}
         currentUser={user}
         onSendMessage={handleSendMessage}
         onTyping={handleTyping}
         onStopTyping={handleStopTyping}
-        blockedUsers={blockedUsers}
-        onBlockUser={handleBlockUser}
-        onUnblockUser={handleUnblockUser}
+        onOpenVideo={() => setShowVideoRoom(true)}
+        onLoadMoreMessages={loadMoreMessages}
+        hasMoreHistory={hasMoreHistory}
+        loadingHistory={loadingHistory}
       />
-      <FriendList
+      <OnlineUserList
         users={users}
         currentUser={user}
-        onFriendSelect={handleFriendSelect}
-        blockedUsers={blockedUsers}
       />
       {showProfileEdit && (
         <UserProfileEdit
@@ -848,6 +794,13 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
           onSave={handleSaveProfile}
           onClose={() => setShowProfileEdit(false)}
           socket={socket}
+        />
+      )}
+      {showVideoRoom && (
+        <VideoRoom
+          socket={socket}
+          user={user}
+          onClose={() => setShowVideoRoom(false)}
         />
       )}
     </div>

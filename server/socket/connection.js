@@ -49,6 +49,9 @@ export function setupConnectionHandlers(io, socket) {
     // 获取所有在线用户
     const allOnlineUsers = userOps.getAllOnline();
 
+    // 将用户加入以其自身ID为名的私聊房间（这样任何人给他发私聊都能收到）
+    socket.join(user.id);
+
     // 通知客户端登录成功
     socket.emit('login:success', user);
 

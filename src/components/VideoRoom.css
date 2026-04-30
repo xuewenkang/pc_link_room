@@ -1,0 +1,640 @@
+/* 群视频通话样式 */
+
+/* 视频房间 - 全屏覆盖层 */
+.video-room {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000;
+  animation: videoFadeIn 0.3s ease;
+}
+
+.video-room.active {
+  background: #1a1a2e;
+}
+
+@keyframes videoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.video-room-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== 视频大厅（未加入时）====== */
+.video-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+  color: white;
+}
+
+.video-lobby h2 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.video-lobby p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 320px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.video-hint {
+  font-size: 12px !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  margin-top: 8px;
+}
+
+.video-start-btn {
+  margin-top: 16px;
+  padding: 14px 36px;
+  border: none;
+  background: linear-gradient(135deg, #34c759, #30d158);
+  color: white;
+  border-radius: 50px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 24px rgba(52, 199, 89, 0.4);
+}
+
+.video-start-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(52, 199, 89, 0.5);
+}
+
+.video-start-btn:active {
+  transform: translateY(0);
+}
+
+/* ====== 视频网格 ===== */
+.video-grid {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  overflow: auto;
+
+  /* 动态列数：根据参与人数自适应，最多6列 */
+  &.grid-1 { grid-template-columns: 1fr; }
+  &.grid-2 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-3 { grid-template-columns: repeat(3, 1fr); }
+  &.grid-4 { grid-template-columns: repeat(4, 1fr); }
+  &.grid-5 { grid-template-columns: repeat(5, 1fr); }
+  &.grid-6 { grid-template-columns: repeat(6, 1fr); }
+  &.grid-7 { grid-template-columns: repeat(6, 1fr); }
+  &.grid-8 { grid-template-columns: repeat(6, 1fr); }
+  &.grid-9 { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* 单个视频面板 */
+.video-tile {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #2a2a4a, #1e1e36);
+  aspect-ratio: 1 / 1;
+  max-height: 100%;
+  animation: tileFadeIn 0.3s ease;
+}
+
+@keyframes tileFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 本地面板特殊处理 */
+.video-tile.local {
+  position: absolute !important;
+  bottom: 80px;
+  right: 12px;
+  width: 200px !important;
+  max-width: 220px;
+  min-width: 160px;
+  z-index: 10;
+  border: 2px solid rgba(52, 199, 89, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border-radius: 14px;
+}
+
+.video-tile.local .video-tile-name::after {
+  content: ' (我)';
+  color: #34c759;
+}
+
+/* 无视频占位（摄像头关闭或远程流未连接）*/
+.video-tile.no-video .video-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #2d2d4a, #22223a);
+}
+
+.video-placeholder .video-avatar {
+  opacity: 0.6;
+}
+
+/* 视频元素 */
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* 面板信息覆盖层 */
+.video-tile-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.video-tile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.video-tile-badge {
+  font-size: 11px;
+  background: #34c759;
+  color: white;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.camera-off-indicator {
+  margin-left: auto;
+  font-size: 11px;
+  color: #ff9500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 149, 0, 0.15);
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+/* 头像在视频中 */
+.video-avatar {
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-avatar svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ====== 控制栏 ===== */
+.video-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(26, 26, 46, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.video-controls-left,
+.video-controls-right {
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+}
+
+.video-controls-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.video-participant-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.control-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.08);
+}
+
+.control-btn.off {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+}
+
+.control-btn.leave-btn {
+  width: 54px;
+  height: 54px;
+  background: #ff3b30;
+  color: white;
+}
+
+.control-btn.leave-btn:hover {
+  background: #e03a2f;
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
+}
+
+/* ====== 点击放大功能 ====== */
+
+/* 可点击的视频格子（鼠标样式 + 放大提示） */
+.video-tile.clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.video-tile.clickable:hover .video-tile-zoom-hint {
+  opacity: 1;
+}
+
+.video-tile-zoom-hint {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* 本地视频的放大提示位置调整 */
+.video-tile.local.clickable:hover .video-tile-overlay {
+  opacity: 0; /* hover 时隐藏默认 overlay 以显示放大图标 */
+}
+
+/* ====== 全屏放大覆盖层 ====== */
+.video-focus-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 80px; /* 避开底部控制栏 */
+  background: rgba(10, 10, 30, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: focusFadeIn 0.25s ease;
+  border-radius: 16px 16px 0 0;
+}
+
+@keyframes focusFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.video-focus-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 放大的视频容器 */
+.focus-video-container {
+  max-width: 90%;
+  max-height: calc(100% - 60px); /* 留出顶部信息栏空间 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.focus-video-element {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* 无视频时的占位 */
+.focus-no-video {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: white;
+}
+
+.focus-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+}
+
+.focus-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* 放大视图顶部栏 */
+.focus-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.3));
+  z-index: 10;
+}
+
+.focus-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.focus-badge {
+  background: #34c759;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.focus-close-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.focus-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .video-tile.local {
+    width: 140px !important;
+    bottom: 70px;
+    right: 8px;
+    min-width: 110px;
+  }
+
+  .video-grid {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .control-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .control-btn.leave-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .video-controls {
+    padding: 8px 16px;
+  }
+
+  .video-focus-overlay {
+    bottom: 70px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .focus-header {
+    height: 44px;
+    padding: 0 14px;
+  }
+
+  .focus-close-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* ====== 权限错误提示面板 ====== */
+.permission-error-panel {
+  margin: 12px 0 0;
+  padding: 24px;
+  background: rgba(255, 59, 48, 0.08);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: 16px;
+  max-width: 420px;
+  text-align: center;
+  animation: errorSlideIn 0.3s ease;
+}
+
+.permission-error-panel.device_not_found,
+.permission-error-panel.device_busy,
+.permission-error-panel.constraint_failed {
+  background: rgba(255, 149, 0, 0.08);
+  border-color: rgba(255, 149, 0, 0.25);
+}
+
+@keyframes errorSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.error-icon {
+  margin-bottom: 10px;
+}
+
+.error-title {
+  font-size: 16px !important;
+  font-weight: 600;
+  color: #ff3b30 !important;
+  margin-bottom: 10px !important;
+}
+
+.permission-error-panel.device_not_found .error-title,
+.permission-error-panel.device_busy .error-title,
+.permission-error-panel.constraint_failed .error-title {
+  color: #ff9500 !important;
+}
+
+.error-message {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  line-height: 1.7 !important;
+  white-space: pre-line;
+  max-width: 380px;
+}
+
+/* 解决方案区域 */
+.error-solution {
+  margin-top: 14px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.solution-steps > span {
+  display: block;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.solution-steps ol {
+  margin: 4px 0 0 18px;
+  padding: 0;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.9;
+}
+
+.solution-steps li {
+  margin-left: 6px;
+}
+
+.solution-steps strong {
+  color: #34c759;
+  font-weight: 600;
+}
+
+.browser-tips {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(52, 199, 89, 0.1);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.browser-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #34c759;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.browser-tips code {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 仅音频降级按钮 */
+.retry-without-camera {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  background: linear-gradient(135deg, #ff9500, #f57c00);
+  color: white;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-without-camera:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(255, 149, 0, 0.35);
+}
+
+.dismiss-error-btn {
+  margin-top: 14px;
+  padding: 8px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dismiss-error-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
