@@ -1,0 +1,348 @@
+.auto-login-container {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #FFE5E5 0%, #FFD1D1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景卡通动画元素 */
+.bg-animations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.floating-icon {
+  position: absolute;
+  font-size: 40px;
+  opacity: 0.6;
+  animation: float-around 15s linear infinite;
+}
+
+@keyframes float-around {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(100px, 100px) rotate(90deg);
+  }
+  50% {
+    transform: translate(0, 200px) rotate(180deg);
+  }
+  75% {
+    transform: translate(-100px, 100px) rotate(270deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(360deg);
+  }
+}
+
+/* 装饰元素 */
+.decoration {
+  position: absolute;
+  font-size: 50px;
+  animation: float 3s ease-in-out infinite;
+  z-index: 1;
+}
+
+.decoration-top-left {
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.decoration-top-right {
+  top: 15%;
+  right: 12%;
+  animation-delay: 0.5s;
+}
+
+.decoration-bottom-left {
+  bottom: 15%;
+  left: 8%;
+  animation-delay: 1s;
+}
+
+.decoration-bottom-right {
+  bottom: 12%;
+  right: 10%;
+  animation-delay: 1.5s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(10deg);
+  }
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 30px;
+  padding: 50px 45px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(15px);
+  border: 4px solid rgba(255, 255, 255, 0.5);
+  position: relative;
+  z-index: 10;
+  animation: cardBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cardBounce {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #FF8C42;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.avatar-preview {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.avatar-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFD700 0%, #FF9800 100%);
+  padding: 4px;
+  margin: 0 auto 12px;
+  box-shadow: 0 8px 20px rgba(255, 87, 34, 0.25);
+  transition: all 0.3s ease;
+}
+
+.avatar-circle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(255, 87, 34, 0.354);
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+.avatar-svg-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-svg-wrapper svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.refresh-btn {
+  background: rgba(255, 87, 34, 0.1);
+  color: #FF8C42;
+  border: 2px solid #FF8C42;
+  padding: 8px 16px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+  background: #FF8C42;
+  color: white;
+  transform: scale(1.05);
+}
+
+.nickname-section {
+  margin-bottom: 25px;
+}
+
+.nickname-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 4px;
+  transition: all 0.3s ease;
+}
+
+.nickname-box:focus-within {
+  border-color: #FFD700;
+  box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.15);
+}
+
+.nickname-input {
+  flex: 1;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 18px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  background: transparent;
+  outline: none;
+}
+
+.nickname-input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+.refresh-nickname-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.refresh-nickname-btn:hover {
+  background: rgba(255, 87, 34, 0.1);
+  transform: rotate(180deg);
+}
+
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #FFD700 0%, #FF9800 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(255, 87, 34, 0.3);
+}
+
+.start-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(255, 87, 34, 0.4);
+}
+
+.start-btn:active {
+  transform: translateY(-1px) scale(1);
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.login-footer p {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 加载动画 */
+.loading-screen {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #FFE5E5 0%, #FFD1D1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: white;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner p {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 20px;
+    border-radius: 15px;
+  }
+
+  .login-header h1 {
+    font-size: 28px;
+  }
+
+  .avatar-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .nickname-input {
+    font-size: 14px;
+  }
+
+  .start-btn {
+    font-size: 16px;
+    padding: 14px;
+  }
+}
