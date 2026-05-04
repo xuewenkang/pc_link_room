@@ -3,10 +3,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 加载环境变量
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// 检测是否在 Render 环境
+const isRender = process.env.RENDER_SERVICE_ID || process.env.RENDER === 'true';
+
+if (!isRender) {
+  // 本地环境：加载 .env 文件
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+}
 
 const { Pool } = pg;
 
@@ -16,6 +21,14 @@ const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 if (!DATABASE_URL) {
   console.error('❌ 错误: 未找到 DATABASE_URL 环境变量');
   console.error('💡 请设置 DATABASE_URL (PostgreSQL 连接字符串)');
+  if (isRender) {
+    console.error('');
+    console.error('🌐 Render 部署配置步骤：');
+    console.error('   1. 进入 Render 控制台 → 你的项目 → Environment');
+    console.error('   2. 添加环境变量：');
+    console.error('      Key: DATABASE_URL');
+    console.error('      Value: postgresql://用户名:密码@主机名/数据库名?sslmode=require');
+  }
   throw new Error('缺少数据库连接字符串');
 }
 
