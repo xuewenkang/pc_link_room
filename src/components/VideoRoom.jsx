@@ -215,14 +215,19 @@ function useWebRTC({ socket, user }) {
     };
   };
 
-  // 创建 RTCPeerConnection 配置（局域网无需 STUN/TURN）
+  // 创建 RTCPeerConnection 配置
   const createPeerConnection = useCallback((targetSocketId) => {
     if (peerConnectionsRef.current.has(targetSocketId)) {
       return peerConnectionsRef.current.get(targetSocketId).pc;
     }
 
     const pc = new RTCPeerConnection({
-      iceServers: [] // 局域网直连，不需要 STUN
+      iceServers: [
+        // Google 公共 STUN 服务器（帮助穿透 NAT）
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
     });
 
     // 添加本地流到连接
