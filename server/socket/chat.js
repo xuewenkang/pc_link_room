@@ -2,7 +2,7 @@ import { messageOps, userOps } from '../config/database.js';
 
 export function setupChatHandlers(io, socket) {
   // 发送消息
-  socket.on('message:send', ({ content, roomId = 'general' }) => {
+  socket.on('message:send', async ({ content, roomId = 'general' }) => {
     if (!content || content.trim().length === 0) return;
 
     const userId = socket.data.userId;
@@ -11,16 +11,21 @@ export function setupChatHandlers(io, socket) {
       return;
     }
 
-    // 保存消息到数据库
-    const result = messageOps.create(userId, content, roomId);
-    const message = messageOps.getWithUser(result.lastInsertRowid);
+    try {
+      // 保存消息到数据库
+      const result = await messageOps.create(userId, content, roomId);
+      const message = await messageOps.getWithUser(result.id);
 
-    // 广播消息给房间内的所有用户
-    io.to(roomId).emit('message:new', { message, roomId });
+      // 广播消息给房间内的所有用户
+      io.to(roomId).emit('message:new', { message, roomId });
+    } catch (error) {
+      console.error('发送消息错误:', error);
+      socket.emit('message:error', '发送失败，请重试');
+    }
   });
 
   // 请求消息历史（支持分页）
-  socket.on('message:history', (data) => {
+  socket.on('message:history', async (data) => {
     // 兼容旧格式: roomId 可以是字符串或对象
     const roomId = (typeof data === 'string') ? data : (data?.roomId || 'general');
     const page = (typeof data === 'object' && data?.page) ? data.page : 1;
@@ -34,12 +39,17 @@ export function setupChatHandlers(io, socket) {
       return;
     }
 
-    const offset = (page - 1) * pageSize;
-    const history = messageOps.getHistory(roomId, pageSize, offset);
-    const total = messageOps.getCount(roomId);
-    const hasMore = offset + history.length < total;
+    try {
+      const offset = (page - 1) * pageSize;
+      const history = await messageOps.getHistory(roomId, pageSize, offset);
+      const total = await messageOps.getCount(roomId);
+      const hasMore = offset + history.length < total;
 
-    socket.emit('message:history', { messages: history, roomId, hasMore, total });
+      socket.emit('message:history', { messages: history, roomId, hasMore, total });
+    } catch (error) {
+      console.error('获取消息历史错误:', error);
+      socket.emit('message:error', '获取历史消息失败');
+    }
   });
 
   // 开始输入提示

@@ -4,14 +4,26 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import forge from 'node-forge';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 加载环境变量
+const envPath = path.resolve(__dirname, '../.env');
+console.log('加载环境变量，，路径:', envPath);
+const result = dotenv.config({ path: envPath });
+if (result.error) {
+  console.warn('⚠️ 警告: 无法加载 .env 文件:', result.error.message);
+} else {
+  console.log('✅ 环境变量已加载');
+}
+
 import { initDatabase } from './config/database.js';
 import { setupConnectionHandlers } from './socket/connection.js';
 import { setupChatHandlers } from './socket/chat.js';
 import { setupGameHandlers } from './socket/games.js';
 import { setupVideoHandlers, cleanupVideoUser } from './socket/video.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -69,10 +81,17 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || (isRender ? 10000 : 443);
 
-// 初始化数据库
-initDatabase();
-import { userOps } from './config/database.js';
-userOps.setAllOffline();
+// 初始化数据库（异步）
+(async () => {
+  try {
+    await initDatabase();
+    const { userOps } = await import('./config/database.js');
+    await userOps.setAllOffline();
+  } catch (error) {
+    console.error('数据库初始化失败:', error);
+    process.exit(1);
+  }
+})();
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, '../dist')));

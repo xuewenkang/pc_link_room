@@ -1,4 +1,13 @@
 import pg from 'pg';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 加载环境变量
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 const { Pool } = pg;
 
 // 从环境变量获取数据库连接字符串
@@ -26,9 +35,6 @@ export async function initDatabase() {
     const client = await pool.connect();
     console.log('✅ 数据库连接成功');
     client.release();
-
-    // 启用外键约束
-    await pool.query('SET session_replication_role = replica;');
 
     // 创建用户表
     await pool.query(`
