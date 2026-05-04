@@ -6,18 +6,17 @@ import { existsSync, mkdirSync, accessSync, constants } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 尝试检测是否在 Render 环境，并验证 /data 目录是否可访问
-let dataDir;
-let isRender = false;
+// 检测是否在 Render 环境
+const isRender = process.env.RENDER_SERVICE_ID || process.env.RENDER === 'true';
 
-try {
-  // 尝试访问 /data 目录
-  accessSync('/data', constants.W_OK);
-  dataDir = '/data';
-  isRender = true;
-  console.log('✅ 检测到 Render 环境，使用持久化存储');
-} catch (error) {
-  // /data 不可访问，使用本地目录
+// 数据目录配置
+let dataDir;
+if (isRender) {
+  // Render 环境：使用项目目录的相对路径
+  dataDir = path.join(__dirname, '../../data');
+  console.log('🚀 检测到 Render 环境，使用相对路径存储');
+} else {
+  // 本地环境：使用本地数据目录
   dataDir = path.join(__dirname, '../data');
   console.log('📁 使用本地数据目录');
 }
@@ -26,8 +25,11 @@ try {
 if (!existsSync(dataDir)) {
   try {
     mkdirSync(dataDir, { recursive: true });
+    console.log('✅ 数据目录创建成功:', dataDir);
   } catch (error) {
-    console.error('创建数据目录失败:', error.message);
+    console.error('❌ 创建数据目录失败:', error.message);
+    console.error('💡 提示：请检查目录权限或手动创建目录');
+    throw new Error(`无法创建数据目录: ${dataDir}`);
   }
 }
 
