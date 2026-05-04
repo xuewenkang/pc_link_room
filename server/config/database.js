@@ -7,7 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 判断是否在 Render 环境
-const isRender = process.env.RENDER === 'true' || process.env.RENDER_EXTERNAL_URL;
+// RENDER 服务 ID 仅在 Render 上设置
+const isRender = !!process.env.RENDER_SERVICE_ID;
 
 // Render 使用持久化磁盘 /data，本地使用项目目录下的 data
 let dataDir;
