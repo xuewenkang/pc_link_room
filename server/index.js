@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import forge from 'node-forge';
 import { initDatabase } from './config/database.js';
 import { setupConnectionHandlers } from './socket/connection.js';
 import { setupChatHandlers } from './socket/chat.js';
@@ -13,7 +14,51 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const server = http.createServer(app);
+
+// 检测是否在 Render 环境
+const isRender = process.env.RENDER === 'true' || process.env.RENDER_EXTERNAL_URL;
+
+let server;
+
+if (isRender) {
+  // Render 环境：使用 HTTP（Render 反向代理处理 SSL）
+  server = http.createServer(app);
+  console.log('🚀 检测到 Render 环境，使用 HTTP 模式');
+} else {
+  // 本地环境：使用 HTTPS（自签名证书）
+  function generateSelfSignedCert() {
+    const keys = forge.pki.rsa.generateKeyPair(2048);
+
+    const cert = forge.pki.createCertificate();
+    cert.publicKey = keys.publicKey;
+    cert.serialNumber = '01';
+    cert.validity.notBefore = new Date();
+    cert.validity.notAfter = new Date();
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+
+    const attrs = [
+      { name: 'commonName', value: 'localhost' },
+      { name: 'countryName', value: 'CN' },
+      { name: 'stateOrProvinceName', value: 'Beijing' },
+      { name: 'localityName', value: 'Beijing' },
+      { name: 'organizationName', value: 'Link Room' }
+    ];
+
+    cert.setSubject(attrs);
+    cert.setIssuer(attrs);
+    cert.sign(keys.privateKey);
+
+    return {
+      key: forge.pki.privateKeyToPem(keys.privateKey),
+      cert: forge.pki.certificateToPem(cert)
+    };
+  }
+
+  const https = await import('https');
+  const { key: privateKey, cert: certificate } = generateSelfSignedCert();
+  server = https.createServer({ key: privateKey, cert: certificate }, app);
+  console.log('🔒 本地环境，使用 HTTPS 模式');
+}
 
 const io = new Server(server, {
   cors: {
@@ -22,7 +67,7 @@ const io = new Server(server, {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || (isRender ? 10000 : 443);
 
 // 初始化数据库
 initDatabase();
@@ -57,18 +102,31 @@ io.on('connection', (socket) => {
 
 // 启动服务器
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`
+  if (isRender) {
+    console.log(`
 ╔════════════════════════════════════════════════════╗
 ║                                                    ║
 ║   🎊 link启动成功！           ║
 ║                                                    ║
-║   ✅ 服务器运行中（HTTP 模式）                      ║
-║   📡 本地访问: http://localhost:${PORT}
-║   🌐 局域网访问: http://<你的IP>:${PORT}
-║                                                    ║
-║   💡 摄像头功能需要 HTTPS，请用以下方式启动浏览器:
-║   chrome.exe --unsafely-treat-insecure-origin-as-secure=http://<你的IP>:${PORT} --user-data-dir="C:\\chrome-dev"
+║   ✅ Render 环境运行中（自动 HTTPS）              ║
+║   🌐 访问地址: ${process.env.RENDER_EXTERNAL_URL || 'https://your-app.onrender.com'}
 ║                                                    ║
 ╚════════════════════════════════════════════════╝
-  `);
+    `);
+  } else {
+    console.log(`
+╔════════════════════════════════════════════════════╗
+║                                                    ║
+║   🎊 link启动成功！           ║
+║                                                    ║
+║   ✅ 服务器运行中（HTTPS 模式）                     ║
+║║   📡 本地访问: https://localhost:${PORT}
+║   🌐 局域网访问: https://<你的IP>:${PORT}
+║                                                    ║
+║   ⚠️  首次访问时需要浏览器信任自签名证书            ║
+║   👉 点击"高级" → "继续访问"                        ║
+║                                                    ║
+╚════════════════════════════════════════════════╝
+    `);
+  }
 });

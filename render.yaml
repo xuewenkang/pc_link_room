@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: link-room
+    env: node
+    buildCommand: npm run build
+    startCommand: npm run server
+    plan: free
+    region: oregon
+    envVars:
+      - key: NODE_ENV
+        value: production

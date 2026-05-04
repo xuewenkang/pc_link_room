@@ -5,8 +5,12 @@ import { io } from 'socket.io-client';
 const getSocketUrl = () => {
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
-  // 无论前端是什么端口，Socket.io服务器都在3000端口
-  return `${protocol}//${hostname}:3000`;
+  const port = window.location.port;
+  // 如果端口是空的（80 或 443），则使用 protocol//hostname
+  if (port) {
+    return `${protocol}//${hostname}:${port}`;
+  }
+  return `${protocol}//${hostname}`;
 };
 
 const SOCKET_URL = getSocketUrl();
@@ -20,15 +24,26 @@ export function useSocket() {
   const eventHandlersRef = useRef({});
 
   useEffect(() => {
-    const socketInstance = io(SOCKET_URL);
+    console.log('尝试连接 Socket 服务器:', SOCKET_URL);
+
+    const socketInstance = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10
+    });
 
     socketInstance.on('connect', () => {
-      console.log('Socket连接成功');
+      console.log('Socket连接成功, ID:', socketInstance.id);
       setConnected(true);
     });
 
-    socketInstance.on('disconnect', () => {
-      console.log('Socket断开连接');
+    socketInstance.on('connect_error', (error) => {
+      console.error('Socket连接错误:', error);
+    });
+
+    socketInstance.on('disconnect', (reason) => {
+      console.log('Socket断开连接, 原因:', reason);
       setConnected(false);
     });
 
