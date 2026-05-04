@@ -6,13 +6,29 @@ import { existsSync, mkdirSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 判断是否在 Render 环境
+const isRender = process.env.RENDER === 'true' || process.env.RENDER_EXTERNAL_URL;
+
+// Render 使用持久化磁盘 /data，本地使用项目目录下的 data
+let dataDir;
+if (isRender) {
+  dataDir = '/data';
+} else {
+  dataDir = path.join(__dirname, '../data');
+}
+
 // 确保数据目录存在
-const dataDir = path.join(__dirname, '../data');
 if (!existsSync(dataDir)) {
   mkdirSync(dataDir, { recursive: true });
 }
 
 const dbPath = path.join(dataDir, 'chat.db');
+
+// 打印数据库路径用于调试
+console.log('📁 数据库路径:', dbPath);
+if (isRender) {
+  console.log('✅ 使用 Render 持久化存储');
+}
 let db;
 
 export function initDatabase() {
