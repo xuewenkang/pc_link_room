@@ -1,35 +1,40 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, accessSync, constants } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 判断是否在 Render 环境
-// RENDER 服务 ID 仅在 Render 上设置
-const isRender = !!process.env.RENDER_SERVICE_ID;
-
-// Render 使用持久化磁盘 /data，本地使用项目目录下的 data
+// 尝试检测是否在 Render 环境，并验证 /data 目录是否可访问
 let dataDir;
-if (isRender) {
+let isRender = false;
+
+try {
+  // 尝试访问 /data 目录
+  accessSync('/data', constants.W_OK);
   dataDir = '/data';
-} else {
+  isRender = true;
+  console.log('✅ 检测到 Render 环境，使用持久化存储');
+} catch (error) {
+  // /data 不可访问，使用本地目录
   dataDir = path.join(__dirname, '../data');
+  console.log('📁 使用本地数据目录');
 }
 
 // 确保数据目录存在
 if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true });
+  try {
+    mkdirSync(dataDir, { recursive: true });
+  } catch (error) {
+    console.error('创建数据目录失败:', error.message);
+  }
 }
 
 const dbPath = path.join(dataDir, 'chat.db');
 
 // 打印数据库路径用于调试
 console.log('📁 数据库路径:', dbPath);
-if (isRender) {
-  console.log('✅ 使用 Render 持久化存储');
-}
 let db;
 
 export function initDatabase() {
