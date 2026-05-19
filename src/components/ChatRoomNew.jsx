@@ -69,6 +69,49 @@ function LeftSidebar({ activeTab, setActiveTab, onLogout, currentUser, onEditPro
   );
 }
 
+// 移动端底部导航栏
+function MobileBottomNav({ activeTab, setActiveTab, onLogout, onShowDrawer, currentUser, unreadCount }) {
+  const navItems = [
+    { id: 'chats', icon: Icons.Message, label: '消息' },
+    { id: 'contacts', icon: Icons.Users, label: '好友' },
+  ];
+
+  return (
+    <div className="mobile-bottom-nav">
+      {navItems.map(item => (
+        <button
+          key={item.id}
+          className={`mobile-nav-item ${activeTab === item.id ? 'active' : ''}`}
+          onClick={() => setActiveTab(item.id)}
+        >
+          <item.icon size={22} />
+          <span className="nav-label">{item.label}</span>
+          {item.id === 'chats' && unreadCount > 0 && (
+            <span className="nav-unread">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          )}
+        </button>
+      ))}
+      <button className="mobile-nav-item" onClick={onShowDrawer}>
+        <Icons.More size={22} />
+        <span className="nav-label">更多</span>
+      </button>
+    </div>
+  );
+}
+
+// 移动端侧边抽屉
+function MobileDrawer({ show, onClose, children, position = 'left' }) {
+  if (!show) return null;
+  return (
+    <>
+      <div className={`drawer-overlay ${show ? 'show' : ''}`} onClick={onClose} />
+      <div className={`drawer-panel ${position} ${show ? 'show' : ''}`}>
+        {children}
+      </div>
+    </>
+  );
+}
+
 // 个人资料编辑面板
 function UserProfileEdit({ currentUser, users, onSave, onClose, socket }) {
   const [nickname, setNickname] = useState(currentUser?.username || '');
@@ -629,6 +672,9 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
   const [hasMoreHistory, setHasMoreHistory] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  // 移动端状态
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  const [drawerContent, setDrawerContent] = useState(null); // 'contacts' | 'users' | 'settings'
 
   useEffect(() => {
     if (socket && user) {
@@ -755,6 +801,11 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
     }
   };
 
+  const handleOpenDrawer = (content) => {
+    setDrawerContent(content);
+    setShowMobileDrawer(true);
+  };
+
   return (
     <div className="chat-app">
       <LeftSidebar
@@ -787,6 +838,70 @@ function ChatRoomNew({ socket, user, users, joinRoom, sendMessage, requestMessag
         users={users}
         currentUser={user}
       />
+
+      {/* 移动端底部导航 */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={(tab) => { if (tab === 'chats') handleSwitchToChats(); else setActiveTab(tab); }}
+        onLogout={onLogout}
+        onShowDrawer={() => handleOpenDrawer('menu')}
+        currentUser={user}
+        unreadCount={unreadCount}
+      />
+
+      {/* 移动端侧边抽屉 */}
+      <MobileDrawer show={showMobileDrawer} onClose={() => { setShowMobileDrawer(false); setDrawerContent(null); }} position="right">
+        {drawerContent === 'menu' && (
+          <div className="mobile-drawer-content">
+            <div className="drawer-header">
+              <h3>更多选项</h3>
+              <button className="drawer-close-btn" onClick={() => setShowMobileDrawer(false)}>
+                <Icons.Close size={18} />
+              </button>
+            </div>
+            <div className="drawer-user-info" onClick={() => { setShowProfileEdit(true); setShowMobileDrawer(false); }}>
+              <Avatar avatarId={user?.avatarId || 'bear'} size={44} />
+              <span className="drawer-username">{user?.username || '我'}</span>
+              <span className="drawer-edit-badge">编辑</span>
+            </div>
+            <div className="drawer-menu">
+              <button className="drawer-menu-item" onClick={() => { handleOpenDrawer('users'); }}>
+                <Icons.Users size={20} />
+                <span>在线用户</span>
+                <span className="drawer-menu-count">{users.length}</span>
+              </button>
+              <button className="drawer-menu-item" onClick={() => { setActiveTab('settings'); setShowMobileDrawer(false); }}>
+                <Icons.Settings size={20} />
+                <span>设置</span>
+              </button>
+            </div>
+            <button className="drawer-logout-btn" onClick={() => { onLogout(); setShowMobileDrawer(false); }}>
+              <Icons.Logout size={18} />
+              <span>退出登录</span>
+            </button>
+          </div>
+        )}
+        {drawerContent === 'users' && (
+          <div className="mobile-drawer-content drawer-users">
+            <div className="drawer-header">
+              <h3>在线用户 ({users.length})</h3>
+              <button className="drawer-close-btn" onClick={() => { setShowMobileDrawer(false); setDrawerContent('menu'); }}>
+                <Icons.Back size={18} />
+              </button>
+            </div>
+            <div className="drawer-user-list">
+              {users.map(u => (
+                <div key={u.id} className={`drawer-user-item ${user?.id === u.id ? 'me' : ''}`}>
+                  <Avatar avatarId={u.avatarId || 'bear'} size={36} />
+                  <span className="drawer-user-name">{u.username}</span>
+                  {user?.id === u.id ? <span className="drawer-me-tag">我</span> : <span className="drawer-online-dot"></span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </MobileDrawer>
+
       {showProfileEdit && (
         <UserProfileEdit
           currentUser={user}

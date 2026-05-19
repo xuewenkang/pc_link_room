@@ -200,3 +200,81 @@
     font-size: 16px;
   }
 }
+
+@media (max-width: 480px) {
+  .games-view {
+    padding: 14px;
+    gap: 24px;
+  }
+
+  .section-header {
+    margin-bottom: 20px;
+  }
+
+  .section-header h2 {
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+
+  .section-header p {
+    font-size: 14px;
+  }
+
+  .games-grid {
+    gap: 16px;
+  }
+
+  .game-card {
+    padding: 24px 18px;
+    border-radius: 18px;
+    gap: 14px;
+  }
+
+  .game-icon {
+    font-size: 40px;
+  }
+
+  .game-card h3 {
+    font-size: 18px;
+  }
+
+  .game-card p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .back-btn {
+    padding: 12px 22px;
+    font-size: 15px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+
+  .game-play-area {
+    padding: 14px;
+  }
+
+  .game-placeholder {
+    padding: 30px 18px;
+    border-radius: 22px;
+  }
+
+  .game-placeholder h3 {
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+
+  .game-placeholder p {
+    font-size: 14px;
+    margin-bottom: 22px;
+  }
+
+  .game-tips {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .game-tips p {
+    font-size: 14px;
+  }
+}

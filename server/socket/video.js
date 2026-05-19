@@ -12,6 +12,21 @@ export function setupVideoHandlers(io, socket) {
     const user = onlineUsers.get(socket.id);
     if (!user) return;
 
+    if (videoParticipants.has(socket.id)) {
+      videoParticipants.delete(socket.id);
+      socket.leave('video-room');
+      socket.to('video-room').emit('video:user-left', {
+        userId: user.id,
+        socketId: socket.id
+      });
+    }
+
+    for (const [sid] of videoParticipants) {
+      if (!io.sockets.sockets.has(sid)) {
+        videoParticipants.delete(sid);
+      }
+    }
+
     // 先记录参与者信息（必须在发送 room-info 之前，否则新用户收不到已加入的用户）
     videoParticipants.set(socket.id, {
       userId: user.id,
@@ -71,6 +86,7 @@ export function setupVideoHandlers(io, socket) {
       fromSocketId: socket.id,
       fromUserId: user?.id,
       fromUsername: user?.username,
+      fromAvatarId: user?.avatarId,
       sdp
     });
   });

@@ -495,6 +495,94 @@
   }
 }
 
+@media (max-width: 480px) {
+  /* 视频大厅 */
+  .video-lobby h2 {
+    font-size: 22px;
+  }
+
+  .video-lobby p {
+    font-size: 14px;
+  }
+
+  .video-start-btn {
+    padding: 12px 28px;
+    font-size: 15px;
+  }
+
+  /* 视频网格 - 单列为主 */
+  &.grid-1 { grid-template-columns: 1fr; }
+  &.grid-2 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-3 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-4 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-5 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-6 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-7 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-8 { grid-template-columns: repeat(2, 1fr); }
+  &.grid-9 { grid-template-columns: repeat(2, 1fr); }
+
+  .video-tile.local {
+    width: 110px !important;
+    min-width: 90px;
+    bottom: 66px;
+    right: 6px;
+  }
+
+  .video-grid {
+    gap: 3px;
+    padding: 6px;
+  }
+
+  /* 控制栏 */
+  .video-controls {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .video-controls-left,
+  .video-controls-right {
+    min-width: auto;
+  }
+
+  .video-participant-count {
+    font-size: 11px;
+  }
+
+  .control-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .control-btn.leave-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .video-controls-center {
+    gap: 8px;
+  }
+
+  /* 放大视图 */
+  .focus-header {
+    height: 40px;
+    padding: 0 12px;
+  }
+
+  .focus-user-info {
+    font-size: 13px;
+  }
+
+  .focus-close-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .focus-name {
+    font-size: 18px;
+  }
+}
+
 /* ====== 权限错误提示面板 ====== */
 .permission-error-panel {
   margin: 12px 0 0;

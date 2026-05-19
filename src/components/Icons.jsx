@@ -183,6 +183,13 @@ export const Icons = {
       <line x1="3" y1="21" x2="10" y2="14" />
     </svg>
   ),
+
+  // 返回图标（移动端导航用）
+  Back: ({ size = 20, color = 'currentColor' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  ),
 };
 
 export default Icons;

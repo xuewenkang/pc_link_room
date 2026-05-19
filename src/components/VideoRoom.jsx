@@ -133,7 +133,9 @@ function useWebRTC({ socket, user }) {
   // remoteStreams: Map<socketId, { stream, userId, username, avatarId }>
   const [remoteStreams, setRemoteStreams] = useState(new Map());
   const peerConnectionsRef = useRef(new Map());
+  const pendingIceCandidatesRef = useRef(new Map());
   const [isInCall, setIsInCall] = useState(false);
+  const isInCallRef = useRef(false);
   // 权限错误相关状态
   const [permissionError, setPermissionError] = useState(null);
   const [isPermissionDenied, setIsPermissionDenied] = useState(false);
@@ -231,10 +233,26 @@ function useWebRTC({ socket, user }) {
     });
 
     // 添加本地流到连接
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current);
+    const localStream = localStreamRef.current;
+    const localVideoTrack = localStream?.getVideoTracks()[0];
+    const localAudioTrack = localStream?.getAudioTracks()[0];
+
+    if (localVideoTrack) {
+      pc.addTransceiver(localVideoTrack, {
+        direction: 'sendrecv',
+        streams: [localStream]
       });
+    } else {
+      pc.addTransceiver('video', { direction: 'recvonly' });
+    }
+
+    if (localAudioTrack) {
+      pc.addTransceiver(localAudioTrack, {
+        direction: 'sendrecv',
+        streams: [localStream]
+      });
+    } else {
+      pc.addTransceiver('audio', { direction: 'recvonly' });
     }
 
     // 收集远程流
@@ -242,7 +260,7 @@ function useWebRTC({ socket, user }) {
       console.log(`[Video] ontrack 触发! 来自 ${targetSocketId}, track kind=${event.track.kind}`);
       setRemoteStreams(prev => {
         const updated = new Map(prev);
-        const remoteStream = event.streams[0] || new MediaStream();
+        const remoteStream = event.streams[0] || new MediaStream([event.track]);
 
         if (!updated.has(targetSocketId)) {
           // 首次收到轨道，创建完整条目
@@ -258,10 +276,12 @@ function useWebRTC({ socket, user }) {
           if (!entry.stream) {
             // 之前 stream 为 null（handleRoomInfo/handleOffer 预注册的），直接替换为真实流
             entry.stream = remoteStream;
-          } else {
+          } else if (entry.stream !== remoteStream) {
             // 已有流对象，追加轨道
             remoteStream.getTracks().forEach(track => {
-              entry.stream.addTrack(track);
+              if (!entry.stream.getTracks().some(existingTrack => existingTrack.id === track.id)) {
+                entry.stream.addTrack(track);
+              }
             });
           }
         }
@@ -306,6 +326,7 @@ function useWebRTC({ socket, user }) {
       });
 
       localStreamRef.current = stream;
+      isInCallRef.current = true;
       setIsInCall(true);
 
       socket.emit('video:join');
@@ -334,6 +355,7 @@ function useWebRTC({ socket, user }) {
       });
 
       localStreamRef.current = stream;
+      isInCallRef.current = true;
       setIsInCall(true);
       socket.emit('video:join');
       return true;
@@ -357,6 +379,7 @@ function useWebRTC({ socket, user }) {
       pc.close();
     }
     peerConnectionsRef.current.clear();
+    pendingIceCandidatesRef.current.clear();
 
     // 停止本地流
     if (localStreamRef.current) {
@@ -365,11 +388,12 @@ function useWebRTC({ socket, user }) {
     }
 
     // 通知服务端离开
-    if (socket && isInCall) {
+    if (socket && isInCallRef.current) {
       socket.emit('video:leave');
     }
+    isInCallRef.current = false;
     setIsInCall(false);
-  }, [socket, isInCall]);
+  }, [socket]);
 
   // 切换摄像头
   const toggleCamera = useCallback(() => {
@@ -409,13 +433,6 @@ function useWebRTC({ socket, user }) {
     }
   }, []);
 
-  // 判断当前用户是否应作为 caller（主动发 offer 的一方）
-  // 使用 socket.id 字符串比较，保证每对用户间只有一人发起连接，避免双向 glare
-  const shouldInitiateCall = useCallback((targetSocketId) => {
-    if (!socket?.id) return false;
-    return socket.id > targetSocketId;
-  }, [socket]);
-
   // 设置信令事件监听
   useEffect(() => {
     if (!socket || !user) return;
@@ -443,12 +460,6 @@ function useWebRTC({ socket, user }) {
           }
           return updated;
         });
-
-        // 只有 caller 才发起连接，callee 等待对方发 offer
-        if (!shouldInitiateCall(participant.socketId)) {
-          console.log(`[Video] 我是 callee，等待 ${participant.username} 发起连接`);
-          continue;
-        }
 
         try {
           const pc = createPeerConnection(participant.socketId);
@@ -489,34 +500,22 @@ function useWebRTC({ socket, user }) {
         return updated;
       });
 
-      // 只有 caller 才主动发 offer，calle 等对方发来 offer 后再回 answer
-      if (!shouldInitiateCall(newSocketId)) {
-        console.log(`[Video] 我是 callee，等待 ${username} 发起连接`);
-        return;
-      }
-
-      try {
-        const pc = createPeerConnection(newSocketId);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        socket.emit('video:offer', {
-          targetSocketId: newSocketId,
-          sdp: offer.toJSON()
-        });
-
-        console.log(`[Video] 向 ${username} 发送 offer (我是 caller)`);
-      } catch (err) {
-        console.error(`向 ${username} 发送 offer 失败:`, err);
-      }
+      console.log(`[Video] ${username} 加入，等待对方发起连接`);
     };
 
     // 收到 offer → 创建 answer (作为 callee 响应)
-    const handleOffer = async ({ fromSocketId, fromUserId, fromUsername, sdp }) => {
+    const handleOffer = async ({ fromSocketId, fromUserId, fromUsername, fromAvatarId, sdp }) => {
       try {
         console.log(`[Video] 收到 ${fromUsername || '用户'} 的 offer`);
         const pc = createPeerConnection(fromSocketId);
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+
+        const pendingCandidates = pendingIceCandidatesRef.current.get(fromSocketId) || [];
+        for (const candidate of pendingCandidates) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        pendingIceCandidatesRef.current.delete(fromSocketId);
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -528,12 +527,17 @@ function useWebRTC({ socket, user }) {
               stream: null,
               userId: fromUserId,
               username: fromUsername,
-              avatarId: null,
+              avatarId: fromAvatarId,
               socketId: fromSocketId
             });
           } else {
             const existing = updated.get(fromSocketId);
-            updated.set(fromSocketId, { ...existing, userId: fromUserId, username: fromUsername });
+            updated.set(fromSocketId, {
+              ...existing,
+              userId: fromUserId,
+              username: fromUsername,
+              avatarId: fromAvatarId || existing.avatarId
+            });
           }
           return updated;
         });
@@ -554,6 +558,11 @@ function useWebRTC({ socket, user }) {
       const entry = peerConnectionsRef.current.get(fromSocketId);
       if (entry?.pc) {
         await entry.pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        const pendingCandidates = pendingIceCandidatesRef.current.get(fromSocketId) || [];
+        for (const candidate of pendingCandidates) {
+          await entry.pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        pendingIceCandidatesRef.current.delete(fromSocketId);
         console.log(`[Video] 收到来自 ${fromSocketId} 的 answer，连接协商完成`);
       } else {
         console.warn(`[Video] 收到未知连接的 answer:`, fromSocketId);
@@ -563,8 +572,12 @@ function useWebRTC({ socket, user }) {
     // 收到 ICE 候选
     const handleIceCandidate = async ({ fromSocketId, candidate }) => {
       const entry = peerConnectionsRef.current.get(fromSocketId);
-      if (entry?.pc) {
+      if (entry?.pc?.remoteDescription) {
         await entry.pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } else {
+        const pendingCandidates = pendingIceCandidatesRef.current.get(fromSocketId) || [];
+        pendingCandidates.push(candidate);
+        pendingIceCandidatesRef.current.set(fromSocketId, pendingCandidates);
       }
     };
 
@@ -600,14 +613,14 @@ function useWebRTC({ socket, user }) {
       socket.off('video:ice-candidate', handleIceCandidate);
       socket.off('video:user-left', handleUserLeft);
     };
-  }, [socket, user, createPeerConnection, shouldInitiateCall]);
+  }, [socket, user, createPeerConnection]);
 
   // 组件卸载时清理
   useEffect(() => {
     return () => {
       leaveVideo();
     };
-  }, []);
+  }, [leaveVideo]);
 
   return {
     localStream: localStreamRef.current,

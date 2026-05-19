@@ -1226,4 +1226,420 @@
   .chat-app {
     grid-template-columns: 1fr;
   }
+
+  /* ====== 移动端底部导航栏 ====== */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    z-index: 1000;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+  }
+
+  .mobile-nav-item.active {
+    color: var(--green);
+  }
+
+  .nav-label {
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .nav-unread {
+    position: absolute;
+    top: 6px;
+    right: 50%;
+    transform: translateX(14px);
+    min-width: 16px;
+    height: 16px;
+    background: #ff3b30;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  /* 聊天窗口适配底部导航 */
+  .chat-window {
+    padding-bottom: 60px;
+  }
+
+  /* 头部栏移动端优化 */
+  .chat-header {
+    padding: 12px 14px;
+  }
+
+  .header-name {
+    font-size: 15px;
+  }
+
+  .header-btn {
+    width: auto;
+    padding: 0 10px;
+  }
+
+  .video-call-label {
+    display: none;
+  }
+
+  /* 消息区域移动端 */
+  .messages-area {
+    padding: 14px;
+  }
+
+  .message-bubble-wrapper {
+    max-width: 80%;
+  }
+
+  .message-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .message-bubble {
+    font-size: 14px;
+    padding: 9px 13px;
+  }
+
+  .image-bubble img {
+    max-width: 200px;
+  }
+
+  /* 输入区域移动端 */
+  .input-container {
+    padding: 12px 14px;
+  }
+
+  .input-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .message-input {
+    padding: 10px 14px;
+    font-size: 15px; /* 防止iOS缩放 */
+  }
+
+  .send-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .emoji-picker {
+    max-width: 100%;
+    left: 0;
+    right: 0;
+    padding: 12px;
+  }
+
+  .emoji-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .emoji-item {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+
+  /* 系统消息移动端 */
+  .system-message-text {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+
+  /* 个人资料编辑面板移动端 */
+  .profile-edit-panel {
+    width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px 20px;
+    margin: 10px;
+  }
+
+  .avatar-selector-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  /* ====== 移动端侧边抽屉 ====== */
+  .drawer-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1999;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .drawer-overlay.show {
+    display: block;
+  }
+
+  .drawer-panel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 80vw;
+    background: var(--card);
+    z-index: 2000;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .drawer-panel.left {
+    left: 0;
+    transform: translateX(-100%);
+  }
+
+  .drawer-panel.right {
+    right: 0;
+    transform: translateX(100%);
+  }
+
+  .drawer-panel.show {
+    transform: translateX(0);
+  }
+
+  .mobile-drawer-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .drawer-header h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .drawer-close-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: var(--hover);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .drawer-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s ease;
+  }
+
+  .drawer-user-info:hover,
+  .drawer-user-info:active {
+    background: var(--hover);
+  }
+
+  .drawer-username {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .drawer-edit-badge {
+    font-size: 11px;
+    color: var(--green);
+    background: var(--green-light);
+    padding: 3px 8px;
+    border-radius: 8px;
+  }
+
+  .drawer-menu {
+    flex: 1;
+    padding: 12px;
+  }
+
+  .drawer-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 12px;
+    font-size: 15px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 48px;
+  }
+
+  .drawer-menu-item:hover,
+  .drawer-menu-item:active {
+    background: var(--hover);
+  }
+
+  .drawer-menu-count {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--hover);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .drawer-logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: calc(100% - 24px);
+    margin: 12px;
+    padding: 14px;
+    border: none;
+    background: #ffe5e5;
+    color: #ff3b30;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .drawer-logout-btn:active {
+    background: #ffd4d4;
+  }
+
+  /* 抽屉内用户列表 */
+  .drawer-users {
+    overflow-y: auto;
+  }
+
+  .drawer-user-list {
+    padding: 8px 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .drawer-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    transition: background 0.2s ease;
+    min-height: 52px;
+  }
+
+  .drawer-user-item:hover,
+  .drawer-user-item:active {
+    background: var(--hover);
+  }
+
+  .drawer-user-item.me {
+    background: var(--green-light);
+  }
+
+  .drawer-user-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .drawer-me-tag {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  .drawer-online-dot {
+    margin-left: auto;
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+}
+
+/* 平板中等屏幕 (481px ~ 768px) 补充优化 */
+@media (min-width: 481px) and (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: none;
+  }
+
+  .message-bubble-wrapper {
+    max-width: 70%;
+  }
+
+  .chat-header {
+    padding: 14px 16px;
+  }
+
+  .video-call-label {
+    display: inline;
+  }
+}
+
+/* 大屏时隐藏移动端元素 */
+@media (min-width: 481px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .drawer-overlay,
+  .drawer-panel {
+    display: none !important;
+  }
 }
